@@ -12,18 +12,18 @@ public protocol HapticxPatternProvider: Sendable {
 
 public struct HapticxPattern: HapticxPatternProvider {
     
-    private let feedbackConverter = DefaultFeedbackConverter()
-    private let eventProcessor = DefaultEventProcessor()
+    private let converter: HapticxConverter = FeedbackConverter()
+    private let processor: HapticxProcessor = EventProcessor()
     
     public init() {}
     
     public func createPattern(for feedback: HapticxFeedback) throws -> CHHapticPattern {
-        let events = feedbackConverter.convert(feedback)
-        return try eventProcessor.process(events)
+        let events = converter.convert(feedback)
+        return try processor.process(events)
     }
     
     public func createPattern(for events: [HapticxEvent]) throws -> CHHapticPattern {
-        return try eventProcessor.process(events)
+        return try processor.process(events)
     }
 }
 

@@ -63,6 +63,12 @@ public final class Hapticx {
         }
     }
     
+    /// Play sequence using builder pattern
+    public static func playSequence(_ builder: (HapticxSequenceBuilder) -> HapticxSequenceBuilder) {
+        let sequence = builder(HapticxSequenceBuilder())
+        playEvents(sequence.build())
+    }
+    
     // MARK: - App Lifecycle
     
     /// Call when app becomes active
