@@ -2,21 +2,18 @@ import CoreHaptics
 import Foundation
 import os.log
 
-// MARK: - Engine State
-
-enum HapticxEngineState {
-    case idle       // Engine not started or stopped
-    case running    // Engine running and ready
-}
-
-
 // MARK: - HapticxEngine Actor
 
 actor HapticxEngine {
     
+    enum State {
+        case stopped    // Engine is stopped
+        case ready      // Engine is started and ready to play
+    }
+    
     // MARK: - Properties
     
-    private(set) var state: HapticxEngineState = .idle
+    private(set) var state: State = .stopped
     private var engine: CHHapticEngine?
     
     // Device support check - note: simulators always return false, which is expected
@@ -27,11 +24,11 @@ actor HapticxEngine {
     
     // MARK: - Initialization
     
-    init() {
+    init() async {
         isSupported = CHHapticEngine.capabilitiesForHardware().supportsHaptics
         
         if isSupported {
-            createEngine()
+            await createEngine()
         } else {
             Self.logger.info("Device does not support haptics (expected on simulator)")
         }
@@ -47,20 +44,20 @@ actor HapticxEngine {
         
         // Lazy creation + self-healing: recreate engine if nil
         if engine == nil {
-            createEngine()
+            await createEngine()
         }
         
         guard let engine = engine else {
             throw HapticxError.engineNotInitialized
         }
         
-        if state == .running {
+        if state == .ready {
             return
         }
         
         do {
-            try engine.start()
-            state = .running
+            try await engine.start()
+            state = .ready
             Self.logger.debug("Engine started successfully")
         } catch {
             throw HapticxError.startFailed(error)
@@ -86,18 +83,17 @@ actor HapticxEngine {
     
     /// Stops the haptic engine and releases resources
     func stop() async {
-        // Immediately set state to idle and clear engine reference
-        state = .idle
+        // Immediately set state to stopped and clear engine reference
+        state = .stopped
         
         if let engine = engine {
-            engine.stop()
+            try? await engine.stop()
             Self.logger.debug("Engine stopped and released")
         }
         
         // Release the engine - startIfNeeded() will recreate when needed
         engine = nil
     }
-    
 }
 
 // MARK: - Private Methods
@@ -105,7 +101,7 @@ actor HapticxEngine {
 private extension HapticxEngine {
     
     /// Creates the CHHapticEngine instance (doesn't start it)
-    func createEngine() {
+    func createEngine() async {
         guard isSupported else { return }
         
         do {
@@ -133,35 +129,19 @@ private extension HapticxEngine {
     }
     
     /// Handles engine reset by system - recreate engine for self-healing
-    func handleReset() {
+    func handleReset() async {
         Self.logger.info("Engine reset by system - recreating")
-        state = .idle
-        createEngine() // Recreate engine instead of just changing state
+        state = .stopped
+        await createEngine() // Recreate engine instead of just changing state
     }
     
     /// Handles engine stopped by system - recreate engine for self-healing
-    func handleStopped(_ reason: CHHapticEngine.StoppedReason) {
+    func handleStopped(_ reason: CHHapticEngine.StoppedReason) async {
         Self.logger.info("Engine stopped: \(reason.rawValue) - recreating")
-        state = .idle
-        
-        // Log specific stop reasons for debugging
-        switch reason {
-        case .audioSessionInterrupt:
-            Self.logger.debug("Stopped due to audio session interrupt")
-        case .applicationSuspended:
-            Self.logger.debug("Stopped due to application suspended")
-        case .idleTimeout:
-            Self.logger.debug("Stopped due to idle timeout")
-        case .systemError:
-            Self.logger.error("Stopped due to system error")
-        case .notifyOthersNotDucking:
-            Self.logger.debug("Stopped due to audio ducking issue")
-        @unknown default:
-            Self.logger.debug("Stopped due to unknown reason")
-        }
+        state = .stopped
         
         // Recreate engine for next use instead of just changing state
-        createEngine()
+        await createEngine()
     }
 }
 
