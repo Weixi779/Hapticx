@@ -9,7 +9,7 @@ public final class Hapticx {
     
     public static let shared = Hapticx()
     private var engine: HapticxEngine?
-    private let patternProvider: HapticxPatternProvider = HapticxPattern()
+    private let patternProvider = HapticxPattern()
     
     private init() {
         Task {
@@ -20,7 +20,7 @@ public final class Hapticx {
     // MARK: - Public API
     
     /// Plays a haptic feedback
-    public static func play(_ feedback: HapticxFeedback) {
+    public static func playFeedback(_ feedback: HapticxFeedback) {
         Task {
             await shared.playFeedback(feedback)
         }
@@ -28,32 +28,39 @@ public final class Hapticx {
     
     /// Quick tap feedback
     public static func tap(_ intensity: HapticxIntensity = .medium, sharpness: HapticxSharpness = .medium) {
-        play(.tap(intensity: intensity, sharpness: sharpness))
+        playFeedback(.tap(intensity: intensity, sharpness: sharpness))
     }
     
     /// Quick buzz feedback
-    public static func buzz(duration: TimeInterval, intensity: HapticxIntensity = .medium, fadeIn: TimeInterval = 0, fadeOut: TimeInterval = 0) {
-        play(.continuous(duration: duration, intensity: intensity, fadeIn: fadeIn, fadeOut: fadeOut))
+    public static func buzz(duration: HapticxDuration = .medium, intensity: HapticxIntensity = .medium, sharpness: HapticxSharpness = .medium) {
+        playFeedback(.continuous(duration: duration, intensity: intensity, sharpness: sharpness))
     }
     
     /// Success feedback
     public static func success() {
-        play(.success)
+        playFeedback(.success)
     }
     
     /// Error feedback
     public static func error() {
-        play(.error)
+        playFeedback(.error)
     }
     
     /// Warning feedback
     public static func warning() {
-        play(.warning)
+        playFeedback(.warning)
     }
     
     /// Selection feedback
     public static func selection() {
-        play(.selection)
+        playFeedback(.selection)
+    }
+    
+    /// Play sequence of events
+    public static func playEvents(_ events: [HapticxEvent]) {
+        Task {
+            await shared.playEvents(events)
+        }
     }
     
     // MARK: - App Lifecycle
@@ -81,6 +88,16 @@ private extension Hapticx {
         guard let engine = engine else { return }
         do {
             let pattern = try patternProvider.createPattern(for: feedback)
+            try await engine.play(pattern: pattern)
+        } catch {
+            // Silent failure - logged by engine
+        }
+    }
+    
+    func playEvents(_ events: [HapticxEvent]) async {
+        guard let engine = engine else { return }
+        do {
+            let pattern = try patternProvider.createPattern(for: events)
             try await engine.play(pattern: pattern)
         } catch {
             // Silent failure - logged by engine

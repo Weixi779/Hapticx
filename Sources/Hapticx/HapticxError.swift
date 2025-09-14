@@ -7,6 +7,7 @@ public enum HapticxError: Error, LocalizedError {
     case engineNotInitialized
     case startFailed(Error)
     case playFailed(Error)
+    case invalidPattern(String)
     
     public var errorDescription: String? {
         switch self {
@@ -18,6 +19,8 @@ public enum HapticxError: Error, LocalizedError {
             return "Failed to start engine: \(error.localizedDescription)"
         case .playFailed(let error):
             return "Failed to play haptic: \(error.localizedDescription)"
+        case .invalidPattern(let reason):
+            return "Invalid haptic pattern: \(reason)"
         }
     }
 }

@@ -11,7 +11,7 @@ public enum HapticxSharpness: Sendable {
         case .soft:   return 0.2
         case .medium: return 0.5
         case .sharp:  return 0.8
-        case .custom(let v): return max(0, min(1, v))
+        case .custom(let v): return HapticxUtils.clamp(v)
         }
     }
 }
