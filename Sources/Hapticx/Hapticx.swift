@@ -11,11 +11,7 @@ public final class Hapticx {
     private var engine: HapticxEngine?
     private let patternProvider = HapticxPattern()
     
-    private init() {
-        Task {
-            engine = await HapticxEngine()
-        }
-    }
+    private init() {}
     
     // MARK: - Public API
     
@@ -74,14 +70,18 @@ public final class Hapticx {
     /// Call when app becomes active
     public static func applicationDidBecomeActive() {
         Task {
-            try? await shared.engine?.startIfNeeded()
+            if let engine = await shared.getEngine() {
+                try? await engine.startIfNeeded()
+            }
         }
     }
     
     /// Call when app will resign active
     public static func applicationWillResignActive() {
         Task {
-            await shared.engine?.stop()
+            if let engine = await shared.getEngine() {
+                await engine.stop()
+            }
         }
     }
 }
@@ -90,8 +90,22 @@ public final class Hapticx {
 
 private extension Hapticx {
     
+    func getEngine() async -> HapticxEngine? {
+        if let engine = engine {
+            return engine
+        }
+        
+        // Lazy initialization
+        let newEngine = await HapticxEngine()
+        if newEngine.isSupported {
+            engine = newEngine
+            return newEngine
+        }
+        return nil
+    }
+    
     func playFeedback(_ feedback: HapticxFeedback) async {
-        guard let engine = engine else { return }
+        guard let engine = await getEngine() else { return }
         do {
             let pattern = try patternProvider.createPattern(for: feedback)
             try await engine.play(pattern: pattern)
@@ -101,7 +115,7 @@ private extension Hapticx {
     }
     
     func playEvents(_ events: [HapticxEvent]) async {
-        guard let engine = engine else { return }
+        guard let engine = await getEngine() else { return }
         do {
             let pattern = try patternProvider.createPattern(for: events)
             try await engine.play(pattern: pattern)

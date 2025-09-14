@@ -1,48 +1,148 @@
 # Hapticx
 
-A modern, lightweight Core Haptics wrapper for iOS 16+.
+A modern, lightweight Core Haptics wrapper for iOS 16+ built with Swift Concurrency.
 
 ## Features
 
-- 🎯 **Modern Swift**: Built with Swift 5.9+ and Swift Concurrency
-- 🛡️ **Thread Safe**: Actor-based architecture for safe concurrent access
-- 🔄 **Auto Recovery**: Intelligent engine lifecycle management
-- ⚡ **Lazy Loading**: Engine starts only when needed
-- 🎨 **Semantic API**: Human-readable haptic feedback methods
-- 📱 **iOS 16+**: No legacy baggage, pure Core Haptics
+- 🎯 **Simple API**: Easy-to-use static methods and builder pattern
+- ⚡ **Swift Concurrency**: Built with actors for thread safety
+- 🔄 **Auto Recovery**: Self-healing engine with lifecycle management
+- 📱 **iOS 16+ Only**: No legacy compatibility, modern Swift 5.9+
+- 🎪 **Type Safe**: Enumerated parameters with custom value support
+- 🏗️ **Flexible**: Both direct calls and sequence building
 
-## Quick Start
+## Installation
 
-### Installation
+### Swift Package Manager
 
 Add to your `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/yourusername/Hapticx.git", from: "1.0.0")
+dependencies: [
+    .package(url: "https://github.com/username/Hapticx.git", from: "0.1.0")
+]
 ```
 
-### Basic Usage
+Or add via Xcode: **File > Add Package Dependencies**
+
+## Quick Start
+
+### Basic Haptics
 
 ```swift
 import Hapticx
 
 // Simple tap
-await Hapticx.tap(intensity: 0.7, sharpness: 0.5)
+Hapticx.tap()
+Hapticx.tap(.heavy, sharpness: .sharp)
 
-// Continuous buzz
-await Hapticx.buzz(duration: 2.0, intensity: 0.8)
+// Continuous vibration
+Hapticx.buzz(duration: .medium, intensity: .heavy)
 
 // Semantic feedback
-await Hapticx.success()
-await Hapticx.error()
+Hapticx.success()
+Hapticx.error()
+Hapticx.warning()
+Hapticx.selection()
 ```
+
+### Direct Event API
+
+```swift
+// Play events with absolute timing
+Hapticx.playEvents([
+    .tap(intensity: .light, sharpness: .soft, at: 0.0),
+    .continuous(duration: .short, intensity: .medium, at: 0.2),
+    .tap(intensity: .heavy, sharpness: .sharp, at: 0.5)
+])
+```
+
+### Sequence Builder (with wait)
+
+```swift
+// Use builder for complex sequences
+Hapticx.playSequence { builder in
+    builder.tap(.light)
+           .wait(.short)
+           .continuous(.medium, intensity: .heavy)
+           .wait(.medium)
+           .success()
+}
+```
+
+## API Reference
+
+### Basic Types
+
+```swift
+// Intensity levels
+HapticxIntensity: .light, .medium, .heavy, .custom(Float)
+
+// Sharpness levels  
+HapticxSharpness: .soft, .medium, .sharp, .custom(Float)
+
+// Duration presets
+HapticxDuration: .short, .medium, .long, .custom(TimeInterval)
+```
+
+### Feedback Types
+
+```swift
+// Direct feedback
+HapticxFeedback.tap(intensity: .medium, sharpness: .sharp)
+HapticxFeedback.continuous(duration: .short, intensity: .heavy, sharpness: .soft)
+
+// Semantic presets
+HapticxFeedback.success  // Two quick taps
+HapticxFeedback.error    // Heavy continuous
+HapticxFeedback.warning  // Three sharp taps
+HapticxFeedback.selection // Light tap
+```
+
+### Lifecycle Integration
+
+```swift
+// In your AppDelegate or App
+func applicationDidBecomeActive() {
+    Hapticx.applicationDidBecomeActive()
+}
+
+func applicationWillResignActive() {
+    Hapticx.applicationWillResignActive()
+}
+```
+
+## Architecture
+
+Hapticx uses a clean layered architecture:
+
+```
+HapticxFeedback → [HapticxEvent] → CHHapticPattern
+     ↓              ↓                ↓
+  Semantic       Standard Events   Core Haptics
+```
+
+- **Types/**: Basic enums and type definitions
+- **Pattern/**: Conversion and processing logic  
+- **HapticxEngine**: Actor-based engine management
+- **Hapticx**: Main public API entry point
 
 ## Requirements
 
 - iOS 16.0+
 - Swift 5.9+
-- Device with Taptic Engine support
+- Xcode 15.0+
+
+## Device Support
+
+- Hapticx automatically detects device capabilities
+- Gracefully handles unsupported devices (simulators)
+- Uses lazy initialization for optimal performance
 
 ## License
 
-MIT License. See LICENSE for details.
+MIT License - see LICENSE file for details.
+
+## Contributing
+
+Contributions welcome! Please read the contributing guidelines before submitting PRs.
